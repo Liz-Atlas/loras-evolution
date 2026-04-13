@@ -1080,10 +1080,26 @@
     <!-- CORE: Private config loaded from secret gist                 -->
     <!-- Replace DEINE_GIST_ID with your actual gist ID after setup   -->
     <!-- ============================================================ -->
-    <script src="https://gist.githubusercontent.com/Liz-Atlas/f61d4150c9ea529f56e04fc994769ff2/raw/core.js"></script>
-
-    <!-- APP LOGIC: Public code -->
+    <!-- APP LOGIC -->
     <script>
+        // Core loader — fetches private config from gist
+        const CORE_URL = 'https://gist.githubusercontent.com/Liz-Atlas/f61d4150c9ea529f56e04fc994769ff2/raw/core.js';
+        let coreLoaded = false;
+
+        async function loadCore() {
+            try {
+                const res = await fetch(CORE_URL);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const code = await res.text();
+                const script = document.createElement('script');
+                script.textContent = code;
+                document.head.appendChild(script);
+                coreLoaded = true;
+            } catch (err) {
+                console.error('Core load failed:', err);
+                coreLoaded = false;
+            }
+        }
         // ============================================================
         // === STATE ===
         // ============================================================
@@ -2248,8 +2264,11 @@
         // === INIT ===
         // ============================================================
         async function init() {
+            // Load private core config from gist
+            await loadCore();
+
             // Check if core.js loaded successfully
-            if (typeof SYSTEM_PROMPT_BASE === 'undefined') {
+            if (!coreLoaded || typeof SYSTEM_PROMPT_BASE === 'undefined') {
                 document.getElementById('chatContainer').innerHTML = `
                     <div class="welcome">
                         <div class="welcome-text" style="color: var(--accent-red);">
