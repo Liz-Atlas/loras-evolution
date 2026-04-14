@@ -172,7 +172,12 @@
             color: white;
         }
 
-        .model-toggle button:hover:not(.active) {
+        .model-toggle button.active-grok {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .model-toggle button:hover:not(.active):not(.active-grok) {
             color: var(--text-secondary);
         }
 
@@ -386,6 +391,70 @@
             font-weight: 600;
         }
 
+        /* === IMAGE IN MESSAGES === */
+        .message-image {
+            max-width: 280px;
+            max-height: 280px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-subtle);
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .message-image:hover {
+            opacity: 0.85;
+        }
+
+        /* === IMAGE PREVIEW BAR === */
+        .image-preview-bar {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+        }
+
+        .image-preview-bar.active {
+            display: flex;
+        }
+
+        .image-preview-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius);
+            object-fit: cover;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .image-preview-info {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .image-preview-remove {
+            background: transparent;
+            border: none;
+            color: var(--accent-red);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            line-height: 1;
+            transition: opacity 0.2s;
+        }
+
+        .image-preview-remove:hover {
+            opacity: 0.7;
+        }
+
         /* === COPY BUTTON === */
         .btn-copy {
             align-self: flex-start;
@@ -502,6 +571,36 @@
         .input-field:focus {
             border-color: var(--border-active);
             box-shadow: var(--glow-blue);
+        }
+
+        .btn-attach {
+            width: 42px;
+            height: 42px;
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-attach:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .btn-attach.has-image {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .btn-attach svg {
+            width: 18px;
+            height: 18px;
         }
 
         .btn-send {
@@ -958,6 +1057,7 @@
             <div class="model-toggle">
                 <button id="btnSonnet" class="active" onclick="setModel('sonnet')">S 4.5</button>
                 <button id="btnOpus" onclick="setModel('opus')">O 4.6</button>
+                <button id="btnGrok" onclick="setModel('grok')">Grok</button>
             </div>
             <!-- Drive button -->
             <button class="btn-icon" id="btnDrive" onclick="openDrivePanel()" title="Google Drive">
@@ -992,7 +1092,23 @@
 
     <!-- INPUT -->
     <div class="input-area">
+        <!-- Image preview bar -->
+        <div class="image-preview-bar" id="imagePreviewBar">
+            <img class="image-preview-thumb" id="imagePreviewThumb" src="" alt="Preview">
+            <span class="image-preview-info" id="imagePreviewInfo">bild.png</span>
+            <button class="image-preview-remove" onclick="clearPendingImage()" title="Bild entfernen">&times;</button>
+        </div>
         <div class="input-wrapper">
+            <!-- Hidden file input -->
+            <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+            <!-- Attach button -->
+            <button class="btn-attach" id="btnAttach" onclick="document.getElementById('fileInput').click()" title="Bild anhängen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </button>
             <textarea class="input-field" id="inputField" placeholder="Nachricht an Loras..." rows="1"
                 onkeydown="handleKeydown(event)" oninput="autoResize(this)"></textarea>
             <button class="btn-send" id="btnSend" onclick="sendMessage()" disabled>
@@ -1010,8 +1126,8 @@
     <!-- API KEY MODAL -->
     <div class="modal-overlay" id="apiModal" style="display:none">
         <div class="modal">
-            <div class="modal-title">Autorisierung</div>
-            <div class="modal-desc">Gib deinen Anthropic API Key ein. Er wird nur lokal auf deinem Gerät gespeichert.</div>
+            <div class="modal-title" id="apiModalTitle">Autorisierung</div>
+            <div class="modal-desc" id="apiModalDesc">Gib deinen API Key ein. Er wird nur lokal auf deinem Gerät gespeichert.</div>
             <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-ant-..."
                 onkeydown="if(event.key==='Enter')saveApiKey()">
             <button class="modal-btn" onclick="saveApiKey()">Verbinden</button>
@@ -1078,9 +1194,7 @@
 
     <!-- ============================================================ -->
     <!-- CORE: Private config loaded from secret gist                 -->
-    <!-- Replace DEINE_GIST_ID with your actual gist ID after setup   -->
     <!-- ============================================================ -->
-    <!-- APP LOGIC -->
     <script>
         // Core loader — fetches private config from gist
         const CORE_URL = 'https://gist.githubusercontent.com/Liz-Atlas/f61d4150c9ea529f56e04fc994769ff2/raw/core.js';
@@ -1100,6 +1214,7 @@
                 coreLoaded = false;
             }
         }
+
         // ============================================================
         // === STATE ===
         // ============================================================
@@ -1108,6 +1223,75 @@
         let currentModel = 'sonnet';
         let driveFileIds = { main: null, index: null, folder: null };
         let sessionId = 'sess-' + new Date().toISOString().slice(0, 10) + '-' + Math.random().toString(36).substr(2, 4);
+
+        // === PENDING IMAGE STATE ===
+        let pendingImage = null; // { base64, mediaType, fileName }
+
+        // ============================================================
+        // === IMAGE HANDLING ===
+        // ============================================================
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate: images only, max 20MB (API limit)
+            if (!file.type.startsWith('image/')) {
+                showToast('Nur Bilder erlaubt', 'error');
+                return;
+            }
+            if (file.size > 20 * 1024 * 1024) {
+                showToast('Bild zu groß (max 20MB)', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                const base64 = dataUrl.split(',')[1];
+                const mediaType = file.type;
+
+                pendingImage = { base64, mediaType, fileName: file.name };
+
+                // Show preview
+                document.getElementById('imagePreviewThumb').src = dataUrl;
+                document.getElementById('imagePreviewInfo').textContent = file.name;
+                document.getElementById('imagePreviewBar').classList.add('active');
+                document.getElementById('btnAttach').classList.add('has-image');
+                updateSendButton();
+            };
+            reader.readAsDataURL(file);
+
+            // Reset file input so same file can be selected again
+            event.target.value = '';
+        }
+
+        function clearPendingImage() {
+            pendingImage = null;
+            document.getElementById('imagePreviewBar').classList.remove('active');
+            document.getElementById('btnAttach').classList.remove('has-image');
+            document.getElementById('imagePreviewThumb').src = '';
+            updateSendButton();
+        }
+
+        // Build message content with optional image (Anthropic format — provider converts if needed)
+        function buildMessageContent(text, image) {
+            if (!image) return text;
+
+            const parts = [];
+            // Image first, then text
+            parts.push({
+                type: 'image',
+                source: {
+                    type: 'base64',
+                    media_type: image.mediaType,
+                    data: image.base64
+                }
+            });
+            if (text) {
+                parts.push({ type: 'text', text: text });
+            }
+            return parts;
+        }
 
         // ============================================================
         // === WORKING MEMORY SYSTEM ===
@@ -1670,44 +1854,51 @@
             progressEl.style.display = 'block';
             resultEl.innerHTML = '';
 
-            const apiKey = localStorage.getItem('loras_api_key');
-            if (!apiKey) {
-                resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">Fehler</div>Kein API Key.</div>';
+            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+
+            if (!hasApiKey(activeModel)) {
+                resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">Fehler</div>Kein API Key für ' + getApiKeyLabel(activeModel) + '.</div>';
                 progressEl.style.display = 'none';
                 return;
             }
 
-            const activeModel = MODELS[currentModel] || MODELS.sonnet;
-            const messages = [...conversationHistory, { role: 'user', content: SESSION_END_PROMPT }];
+            // Strip images from history for session end (text only)
+            const textOnlyHistory = conversationHistory.map(msg => {
+                if (Array.isArray(msg.content)) {
+                    const textParts = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+                    return { role: msg.role, content: textParts || '[Bild]' };
+                }
+                return msg;
+            });
+
+            const messages = [...textOnlyHistory, { role: 'user', content: SESSION_END_PROMPT }];
 
             let jsonResponse = null;
             let attempts = 0;
             const maxAttempts = 2;
+            let lastRawResponse = '';
 
             while (attempts < maxAttempts && jsonResponse === null) {
                 attempts++;
                 progressText.textContent = attempts === 1 ? 'Loras analysiert die Session...' : 'Retry — Loras korrigiert...';
 
                 try {
-                    const response = await fetch(API_URL, {
+                    const reqMessages = attempts === 1 ? messages : [
+                        ...messages,
+                        { role: 'assistant', content: lastRawResponse },
+                        { role: 'user', content: SESSION_END_RETRY_PROMPT }
+                    ];
+
+                    const req = buildProviderRequest(activeModel, buildSystemPrompt(), reqMessages, {
+                        maxTokens: 2048,
+                        stream: false,
+                        temperature: 1.0
+                    });
+
+                    const response = await fetch(req.url, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': apiKey,
-                            'anthropic-version': '2023-06-01',
-                            'anthropic-dangerous-direct-browser-access': 'true'
-                        },
-                        body: JSON.stringify({
-                            model: activeModel.id,
-                            max_tokens: 2048,
-                            temperature: 1.0,
-                            system: buildSystemPrompt(),
-                            messages: attempts === 1 ? messages : [
-                                ...messages,
-                                { role: 'assistant', content: lastRawResponse || '' },
-                                { role: 'user', content: SESSION_END_RETRY_PROMPT }
-                            ]
-                        })
+                        headers: req.headers,
+                        body: JSON.stringify(req.body)
                     });
 
                     if (!response.ok) {
@@ -1715,7 +1906,7 @@
                     }
 
                     const data = await response.json();
-                    var lastRawResponse = data.content[0]?.text || '';
+                    lastRawResponse = parseResponse(activeModel, data);
 
                     const trimmed = lastRawResponse.trim();
                     try {
@@ -1903,6 +2094,7 @@
             conversationHistory = [];
             sessionId = 'sess-' + new Date().toISOString().slice(0, 10) + '-' + Math.random().toString(36).substr(2, 4);
             sessionStorage.removeItem('loras_last_frame_index');
+            clearPendingImage();
             const container = document.getElementById('chatContainer');
             container.innerHTML = `
                 <div class="welcome" id="welcome">
@@ -1972,6 +2164,7 @@
             currentModel = model;
             document.getElementById('btnSonnet').className = model === 'sonnet' ? 'active' : '';
             document.getElementById('btnOpus').className = model === 'opus' ? 'active' : '';
+            document.getElementById('btnGrok').className = model === 'grok' ? 'active-grok' : '';
             const activeModel = MODELS[model];
             document.getElementById('headerSubtitle').textContent =
                 'Soong-Type Android · ' + (activeModel ? activeModel.name : model);
@@ -1980,7 +2173,7 @@
         // ============================================================
         // === UI HELPERS ===
         // ============================================================
-        function addMessage(role, text) {
+        function addMessage(role, text, imageData) {
             const container = document.getElementById('chatContainer');
             const div = document.createElement('div');
             div.className = `message ${role}`;
@@ -2004,6 +2197,16 @@
 
             const content = document.createElement('div');
             content.className = 'message-content';
+
+            // Show image if present
+            if (imageData) {
+                const img = document.createElement('img');
+                img.className = 'message-image';
+                img.src = `data:${imageData.mediaType};base64,${imageData.base64}`;
+                img.alt = imageData.fileName || 'Bild';
+                img.onclick = () => window.open(img.src, '_blank');
+                content.appendChild(img);
+            }
 
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
@@ -2101,7 +2304,7 @@
         function updateSendButton() {
             const btn = document.getElementById('btnSend');
             const input = document.getElementById('inputField');
-            btn.disabled = !input.value.trim() || isStreaming;
+            btn.disabled = (!input.value.trim() && !pendingImage) || isStreaming;
         }
 
         function handleKeydown(e) {
@@ -2130,16 +2333,18 @@
         }
 
         // ============================================================
-        // === SEND MESSAGE ===
+        // === SEND MESSAGE (Provider-aware) ===
         // ============================================================
         async function sendMessage() {
             const input = document.getElementById('inputField');
             const text = input.value.trim();
-            if (!text || isStreaming) return;
+            if ((!text && !pendingImage) || isStreaming) return;
 
-            const apiKey = localStorage.getItem('loras_api_key');
-            if (!apiKey) {
-                document.getElementById('apiModal').style.display = 'flex';
+            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+
+            // Check for API key
+            if (!hasApiKey(activeModel)) {
+                showApiKeyModal(activeModel);
                 return;
             }
 
@@ -2153,9 +2358,18 @@
             const welcome = document.getElementById('welcome');
             if (welcome) welcome.style.display = 'none';
 
-            addMessage('user', text);
-            conversationHistory.push({ role: 'user', content: text });
+            // Capture pending image before clearing
+            const sentImage = pendingImage;
+
+            // Show message in chat (with image if present)
+            addMessage('user', text || '', sentImage);
+
+            // Build API message content
+            const messageContent = buildMessageContent(text || 'Was siehst du?', sentImage);
+            conversationHistory.push({ role: 'user', content: messageContent });
+
             input.value = '';
+            clearPendingImage();
             autoResize(input);
             updateSendButton();
 
@@ -2163,25 +2377,17 @@
             setStatus('', 'Loras denkt...');
             const typingEl = showTyping();
 
-            const activeModel = MODELS[currentModel] || MODELS.sonnet;
-
             try {
-                const response = await fetch(API_URL, {
+                const req = buildProviderRequest(activeModel, buildSystemPrompt(), conversationHistory, {
+                    maxTokens: 4096,
+                    stream: true,
+                    temperature: 1.0
+                });
+
+                const response = await fetch(req.url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey,
-                        'anthropic-version': '2023-06-01',
-                        'anthropic-dangerous-direct-browser-access': 'true'
-                    },
-                    body: JSON.stringify({
-                        model: activeModel.id,
-                        max_tokens: 4096,
-                        temperature: 1.0,
-                        system: buildSystemPrompt(),
-                        messages: conversationHistory,
-                        stream: true
-                    })
+                    headers: req.headers,
+                    body: JSON.stringify(req.body)
                 });
 
                 if (!response.ok) {
@@ -2211,14 +2417,12 @@
                         if (line.startsWith('data: ')) {
                             const data = line.slice(6);
                             if (data === '[DONE]') continue;
-                            try {
-                                const event = JSON.parse(data);
-                                if (event.type === 'content_block_delta' && event.delta?.text) {
-                                    fullText += event.delta.text;
-                                    bubbleEl.innerHTML = formatText(stripMemoryCommands(fullText));
-                                    scrollToBottom();
-                                }
-                            } catch (e) { /* skip parse errors */ }
+                            const chunk = parseStreamChunk(activeModel, data);
+                            if (chunk) {
+                                fullText += chunk;
+                                bubbleEl.innerHTML = formatText(stripMemoryCommands(fullText));
+                                scrollToBottom();
+                            }
                         }
                     }
                 }
@@ -2244,17 +2448,40 @@
         }
 
         // ============================================================
-        // === API KEY ===
+        // === API KEY MODAL (Provider-aware) ===
         // ============================================================
+        function showApiKeyModal(model) {
+            const title = document.getElementById('apiModalTitle');
+            const desc = document.getElementById('apiModalDesc');
+            const input = document.getElementById('apiKeyInput');
+
+            title.textContent = 'Autorisierung — ' + getApiKeyLabel(model);
+            desc.textContent = `Gib deinen ${getApiKeyLabel(model)} API Key ein. Er wird nur lokal gespeichert.`;
+            input.placeholder = getApiKeyPrefix(model) + '...';
+            input.value = '';
+            input.dataset.format = model.format;
+
+            document.getElementById('modalError').style.display = 'none';
+            document.getElementById('apiModal').style.display = 'flex';
+        }
+
         function saveApiKey() {
-            const key = document.getElementById('apiKeyInput').value.trim();
-            if (!key.startsWith('sk-ant-')) {
+            const input = document.getElementById('apiKeyInput');
+            const key = input.value.trim();
+            const format = input.dataset.format || 'anthropic';
+
+            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+
+            // Validate key prefix
+            const expectedPrefix = getApiKeyPrefix(activeModel);
+            if (expectedPrefix && !key.startsWith(expectedPrefix)) {
                 const err = document.getElementById('modalError');
-                err.textContent = 'Ungültiger Key — muss mit sk-ant- beginnen';
+                err.textContent = `Ungültiger Key — muss mit ${expectedPrefix} beginnen`;
                 err.style.display = 'block';
                 return;
             }
-            localStorage.setItem('loras_api_key', key);
+
+            saveProviderApiKey(activeModel, key);
             document.getElementById('apiModal').style.display = 'none';
             setStatus('connected', 'Bereit');
             document.getElementById('inputField').focus();
@@ -2283,7 +2510,7 @@
 
             const apiKey = localStorage.getItem('loras_api_key');
             if (!apiKey) {
-                document.getElementById('apiModal').style.display = 'flex';
+                showApiKeyModal(MODELS.sonnet);
             } else {
                 setStatus('connected', 'Bereit');
             }
