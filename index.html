@@ -2213,13 +2213,6 @@
             bubble.innerHTML = text ? formatText(text) : '';
 
             content.appendChild(bubble);
-
-            if (role === 'assistant' && text !== '') {
-                const copyBtn = createCopyButton();
-                content.appendChild(copyBtn);
-                div.dataset.rawText = text;
-            }
-
             div.appendChild(avatar);
             div.appendChild(content);
             container.appendChild(div);
@@ -2430,6 +2423,9 @@
                 const cleanText = parseMemoryCommands(fullText);
                 bubbleEl.innerHTML = formatText(cleanText);
 
+                const copyBtn = createCopyButton();
+                msgEl.querySelector('.message-content').appendChild(copyBtn);
+                
                 conversationHistory.push({ role: 'assistant', content: cleanText });
 
                 msgEl.dataset.rawText = cleanText;
