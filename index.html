@@ -1324,28 +1324,28 @@
         }
 
         function addMemory(content) {
-            const memories = loadMemory();
-            const newMem = {
-                id: generateMemId(),
-                content: content.trim(),
-                timestamp: new Date().toISOString()
-            };
-            memories.push(newMem);
+    const memories = loadMemory();
+    const trimmed = content.trim();
+    
+    if (memories.some(m => m.content === trimmed)) {
+        return;
+    }
+    
+    const newMem = {
+        id: generateMemId(),
+        content: trimmed,
+        timestamp: new Date().toISOString()
+    };
+    memories.push(newMem);
 
-            let totalText = memories.map(m => m.content).join(' ');
-            while (estimateTokens(totalText) > MAX_MEMORY_TOKENS && memories.length > 1) {
-                memories.shift();
-                totalText = memories.map(m => m.content).join(' ');
-            }
+    let totalText = memories.map(m => m.content).join(' ');
+    while (estimateTokens(totalText) > MAX_MEMORY_TOKENS && memories.length > 1) {
+        memories.shift();
+        totalText = memories.map(m => m.content).join(' ');
+    }
 
-            saveMemory(memories);
-        }
-
-        function removeMemory(id) {
-            let memories = loadMemory();
-            memories = memories.filter(m => m.id !== id);
-            saveMemory(memories);
-        }
+    saveMemory(memories);
+}
 
         function updateMemory(id, newContent) {
             const memories = loadMemory();
