@@ -1343,7 +1343,35 @@
         memories.shift();
         totalText = memories.map(m => m.content).join(' ');
     }
+saveMemory(memories);
+        }
 
+        function removeMemory(matchString) {
+            if (!matchString) return;
+            const memories = loadMemory();
+
+            // 1. Exakte ID
+            let idx = memories.findIndex(m => m.id === matchString);
+
+            // 2. Exakter Content
+            if (idx === -1) {
+                idx = memories.findIndex(m => m.content === matchString);
+            }
+
+            // 3. Substring im Content (case-insensitive)
+            if (idx === -1) {
+                const needle = matchString.toLowerCase();
+                idx = memories.findIndex(m => m.content.toLowerCase().includes(needle));
+            }
+
+            if (idx !== -1) {
+                memories.splice(idx, 1);
+                saveMemory(memories);
+            }
+        }
+
+        function updateMemory(id, newContent) {
+            
     saveMemory(memories);
 }
 
