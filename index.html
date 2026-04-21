@@ -1963,11 +1963,7 @@ saveMemory(memories);
                 return;
             }
 
-            if (jsonResponse.nothing_to_save === true) {
-                resultEl.innerHTML = '<div class="session-end-result success"><div class="result-title">Nichts zu speichern</div>Loras hat entschieden: Diese Session hat nichts Langfristiges produziert.</div>';
-                closeBtn.textContent = 'Session beenden';
-                closeBtn.onclick = () => { closeSessionEndModal(); newSession(); };
-                return;
+          
             }
 
             const entries = Array.isArray(jsonResponse) ? jsonResponse : [jsonResponse];
