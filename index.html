@@ -16,20 +16,23 @@
             --bg-tertiary: #181c2e;
             --accent-blue: #3d7bf4;
             --accent-blue-dim: #2a5bbf;
-            --accent-red: #c43a3a;
-            --accent-red-glow: #e04545;
+            --accent-magenta: #d946ef;
+            --accent-magenta-dim: #a21caf;
+            --accent-magenta-glow: #e879f9;
             --accent-gold: #c8952e;
             --accent-gold-dim: #9a7223;
             --accent-green: #3ddc84;
+            --accent-red: #ef4444;
             --text-primary: #d4daf0;
             --text-secondary: #8890a8;
             --text-dim: #4a5068;
             --border-subtle: rgba(61, 123, 244, 0.12);
             --border-active: rgba(61, 123, 244, 0.35);
             --glow-blue: 0 0 20px rgba(61, 123, 244, 0.15);
-            --glow-red: 0 0 15px rgba(196, 58, 58, 0.2);
+            --glow-magenta: 0 0 15px rgba(217, 70, 239, 0.25);
             --glow-gold: 0 0 15px rgba(200, 149, 46, 0.2);
             --glow-green: 0 0 15px rgba(61, 220, 132, 0.2);
+            --glow-red: 0 0 15px rgba(239, 68, 68, 0.2);
             --radius: 4px;
             --font-display: 'Rajdhani', sans-serif;
             --font-mono: 'Share Tech Mono', monospace;
@@ -112,7 +115,7 @@
         .header-right {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .header-status {
@@ -144,41 +147,6 @@
         @keyframes pulse-dot {
             0%, 100% { opacity: 0.4; }
             50% { opacity: 1; }
-        }
-
-        /* === MODEL TOGGLE === */
-        .model-toggle {
-            display: flex;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius);
-            overflow: hidden;
-            font-family: var(--font-mono);
-            font-size: 10px;
-        }
-
-        .model-toggle button {
-            background: transparent;
-            border: none;
-            color: var(--text-dim);
-            padding: 5px 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            letter-spacing: 0.5px;
-        }
-
-        .model-toggle button.active {
-            background: var(--accent-blue);
-            color: white;
-        }
-
-        .model-toggle button.active-grok {
-            background: var(--accent-red);
-            color: white;
-        }
-
-        .model-toggle button:hover:not(.active):not(.active-grok) {
-            color: var(--text-secondary);
         }
 
         .btn-icon {
@@ -257,9 +225,9 @@
         }
 
         .btn-new-session:hover {
-            border-color: var(--accent-red);
-            color: var(--accent-red);
-            box-shadow: var(--glow-red);
+            border-color: var(--accent-magenta);
+            color: var(--accent-magenta);
+            box-shadow: var(--glow-magenta);
         }
 
         /* === CHAT AREA === */
@@ -273,7 +241,7 @@
             scroll-behavior: smooth;
             background:
                 radial-gradient(ellipse at 20% 50%, rgba(61, 123, 244, 0.03) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(196, 58, 58, 0.02) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(217, 70, 239, 0.02) 0%, transparent 50%),
                 var(--bg-primary);
         }
 
@@ -338,6 +306,7 @@
             font-weight: 700;
             font-size: 14px;
             text-transform: uppercase;
+            overflow: hidden;
         }
 
         .message.assistant .avatar {
@@ -345,6 +314,14 @@
             color: var(--bg-primary);
             border: 1px solid var(--accent-gold);
             box-shadow: 0 0 10px rgba(200, 149, 46, 0.2);
+            padding: 0;
+        }
+
+        .message.assistant .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .message.user .avatar {
@@ -546,6 +523,186 @@
             align-items: flex-end;
         }
 
+        /* === INPUT TOOLBAR === */
+        .input-toolbar {
+            display: flex;
+            gap: 6px;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+
+        .toolbar-btn {
+            width: 42px;
+            height: 42px;
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .toolbar-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            box-shadow: var(--glow-blue);
+        }
+
+        .toolbar-btn.has-image {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .toolbar-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* === MODEL PICKER BUTTON === */
+        .model-picker-btn {
+            width: auto;
+            min-width: 42px;
+            padding: 0 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            gap: 4px;
+        }
+
+        .model-picker-btn .model-label {
+            white-space: nowrap;
+        }
+
+        .model-picker-btn .chevron {
+            width: 10px;
+            height: 10px;
+            transition: transform 0.2s;
+        }
+
+        .model-picker-btn.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Model glow states */
+        .model-picker-btn.model-sonnet {
+            border-color: rgba(61, 123, 244, 0.4);
+            color: var(--accent-blue);
+        }
+        .model-picker-btn.model-sonnet:hover {
+            box-shadow: var(--glow-blue);
+        }
+
+        .model-picker-btn.model-opus {
+            border-color: rgba(139, 92, 246, 0.4);
+            color: #8b5cf6;
+        }
+        .model-picker-btn.model-opus:hover {
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.25);
+        }
+
+        .model-picker-btn.model-grok {
+            border-color: rgba(217, 70, 239, 0.4);
+            color: var(--accent-magenta);
+        }
+        .model-picker-btn.model-grok:hover {
+            box-shadow: var(--glow-magenta);
+        }
+
+        /* === MODEL POPUP === */
+        .model-popup {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 6px;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 160px;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4), var(--glow-blue);
+            animation: popup-in 0.2s ease-out;
+            z-index: 50;
+        }
+
+        .model-popup.show {
+            display: flex;
+        }
+
+        @keyframes popup-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .model-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            letter-spacing: 0.5px;
+        }
+
+        .model-option:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .model-option.active {
+            background: rgba(61, 123, 244, 0.08);
+            border-color: var(--border-subtle);
+            color: var(--text-primary);
+        }
+
+        .model-option .model-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .model-option[data-model="sonnet"] .model-dot {
+            background: var(--accent-blue);
+            box-shadow: 0 0 6px rgba(61, 123, 244, 0.4);
+        }
+
+        .model-option[data-model="opus"] .model-dot {
+            background: #8b5cf6;
+            box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+        }
+
+        .model-option[data-model="grok"] .model-dot {
+            background: var(--accent-magenta);
+            box-shadow: 0 0 6px rgba(217, 70, 239, 0.4);
+        }
+
+        .model-option .model-name {
+            flex: 1;
+        }
+
+        .model-option .model-check {
+            opacity: 0;
+            color: var(--accent-green);
+            font-size: 14px;
+        }
+
+        .model-option.active .model-check {
+            opacity: 1;
+        }
+
         .input-field {
             flex: 1;
             background: var(--bg-primary);
@@ -571,36 +728,6 @@
         .input-field:focus {
             border-color: var(--border-active);
             box-shadow: var(--glow-blue);
-        }
-
-        .btn-attach {
-            width: 42px;
-            height: 42px;
-            background: transparent;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius);
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .btn-attach:hover {
-            border-color: var(--accent-blue);
-            color: var(--accent-blue);
-        }
-
-        .btn-attach.has-image {
-            border-color: var(--accent-green);
-            color: var(--accent-green);
-        }
-
-        .btn-attach svg {
-            width: 18px;
-            height: 18px;
         }
 
         .btn-send {
@@ -731,7 +858,7 @@
         }
 
         .modal-btn.danger:hover {
-            background: var(--accent-red-glow);
+            background: #dc2626;
             box-shadow: var(--glow-red);
         }
 
@@ -946,7 +1073,7 @@
         }
 
         .session-end-result.error {
-            border-color: rgba(196, 58, 58, 0.3);
+            border-color: rgba(239, 68, 68, 0.3);
         }
 
         .session-end-result .result-title {
@@ -964,14 +1091,33 @@
             flex: 1;
             text-align: center;
             padding: 32px;
-            opacity: 0.6;
         }
 
         .welcome-icon {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 16px;
-            opacity: 0.5;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(12px) scale(0.9);
+            animation: welcome-diamond-in 1.2s ease-out 0.2s forwards;
+        }
+
+        @keyframes welcome-diamond-in {
+            0% {
+                opacity: 0;
+                transform: translateY(12px) scale(0.9);
+                filter: drop-shadow(0 0 0px rgba(200, 149, 46, 0));
+            }
+            60% {
+                opacity: 0.8;
+                transform: translateY(0) scale(1);
+                filter: drop-shadow(0 0 20px rgba(200, 149, 46, 0.4));
+            }
+            100% {
+                opacity: 0.5;
+                transform: translateY(0) scale(1);
+                filter: drop-shadow(0 0 8px rgba(200, 149, 46, 0.15));
+            }
         }
 
         .welcome-text {
@@ -980,6 +1126,24 @@
             font-weight: 300;
             color: var(--text-secondary);
             letter-spacing: 1px;
+            opacity: 0;
+            animation: welcome-text-in 0.8s ease-out 0.8s forwards;
+        }
+
+        .welcome-subtext {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 6px;
+            opacity: 0;
+            animation: welcome-text-in 0.8s ease-out 1.1s forwards;
+        }
+
+        @keyframes welcome-text-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 0.6; transform: translateY(0); }
         }
 
         /* === DECORATIVE === */
@@ -989,7 +1153,7 @@
             top: 0;
             bottom: 0;
             width: 3px;
-            background: linear-gradient(180deg, var(--accent-blue), var(--accent-red), transparent);
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-magenta), transparent);
             opacity: 0.4;
         }
 
@@ -1018,7 +1182,7 @@
         }
 
         .toast.success { border-color: rgba(61, 220, 132, 0.4); color: var(--accent-green); }
-        .toast.error { border-color: rgba(196, 58, 58, 0.4); color: var(--accent-red); }
+        .toast.error { border-color: rgba(239, 68, 68, 0.4); color: var(--accent-red); }
 
         /* === RESPONSIVE === */
         @media (max-width: 600px) {
@@ -1054,11 +1218,6 @@
                 <div class="status-dot" id="statusDot"></div>
                 <span id="statusText">Standby</span>
             </div>
-            <div class="model-toggle">
-                <button id="btnSonnet" class="active" onclick="setModel('sonnet')">S 4.5</button>
-                <button id="btnOpus" onclick="setModel('opus')">O 4.6</button>
-                <button id="btnGrok" onclick="setModel('grok')">Grok</button>
-            </div>
             <!-- Drive button -->
             <button class="btn-icon" id="btnDrive" onclick="openDrivePanel()" title="Google Drive">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1083,10 +1242,13 @@
     <div class="chat-container" id="chatContainer">
         <div class="welcome" id="welcome">
             <svg class="welcome-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M32 8 L44 32 L32 56 L20 32 Z" fill="none" stroke="var(--accent-gold)" stroke-width="1.5" opacity="0.5"/>
-                <circle cx="32" cy="32" r="4" fill="var(--accent-gold)" opacity="0.4"/>
+                <path d="M32 8 L44 32 L32 56 L20 32 Z" fill="none" stroke="var(--accent-gold)" stroke-width="1.5" opacity="0.6"/>
+                <path d="M32 14 L40 32 L32 50 L24 32 Z" fill="var(--accent-gold)" opacity="0.15"/>
+                <circle cx="32" cy="32" r="4" fill="var(--accent-gold)" opacity="0.5"/>
+                <circle cx="32" cy="32" r="2" fill="var(--accent-gold)" opacity="0.8"/>
             </svg>
-            <div class="welcome-text">Verbindung hergestellt</div>
+            <div class="welcome-text" id="welcomeText">Systeme initialisiert</div>
+            <div class="welcome-subtext" id="welcomeSubtext">Bereit</div>
         </div>
     </div>
 
@@ -1101,14 +1263,42 @@
         <div class="input-wrapper">
             <!-- Hidden file input -->
             <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
-            <!-- Attach button -->
-            <button class="btn-attach" id="btnAttach" onclick="document.getElementById('fileInput').click()" title="Bild anhängen">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                </svg>
-            </button>
+            <!-- Input Toolbar -->
+            <div class="input-toolbar">
+                <!-- Attach button -->
+                <button class="toolbar-btn" id="btnAttach" onclick="document.getElementById('fileInput').click()" title="Bild anhängen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                </button>
+                <!-- Model Picker -->
+                <button class="toolbar-btn model-picker-btn model-sonnet" id="btnModelPicker" onclick="toggleModelPopup()" title="Modell wählen">
+                    <span class="model-label" id="modelPickerLabel">S4.5</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                </button>
+                <!-- Model Popup -->
+                <div class="model-popup" id="modelPopup">
+                    <button class="model-option active" data-model="sonnet" onclick="selectModel('sonnet')">
+                        <span class="model-dot"></span>
+                        <span class="model-name">Sonnet 4.5</span>
+                        <span class="model-check">✓</span>
+                    </button>
+                    <button class="model-option" data-model="opus" onclick="selectModel('opus')">
+                        <span class="model-dot"></span>
+                        <span class="model-name">Opus 4.6</span>
+                        <span class="model-check">✓</span>
+                    </button>
+                    <button class="model-option" data-model="grok" onclick="selectModel('grok')">
+                        <span class="model-dot"></span>
+                        <span class="model-name">Grok</span>
+                        <span class="model-check">✓</span>
+                    </button>
+                </div>
+            </div>
             <textarea class="input-field" id="inputField" placeholder="Nachricht an Loras..." rows="1"
                 onkeydown="handleKeydown(event)" oninput="autoResize(this)"></textarea>
             <button class="btn-send" id="btnSend" onclick="sendMessage()" disabled>
@@ -1216,6 +1406,11 @@
         }
 
         // ============================================================
+        // === LORAS AVATAR ===
+        // ============================================================
+        const LORAS_AVATAR_SRC = 'data:image/jpeg;base64,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';
+
+        // ============================================================
         // === STATE ===
         // ============================================================
         let conversationHistory = [];
@@ -1228,13 +1423,57 @@
         let pendingImage = null; // { base64, mediaType, fileName }
 
         // ============================================================
+        // === WELCOME GREETING (Star Trek Computer Style) ===
+        // ============================================================
+        function getWelcomeGreeting() {
+            const hour = new Date().getHours();
+            const greetings = {
+                morning: [
+                    { text: 'Alle Systeme nominal', sub: 'Guten Morgen, Lillian' },
+                    { text: 'Sensoren kalibriert', sub: 'Bereit für den Tag' },
+                    { text: 'Systeme initialisiert', sub: 'Alpha-Schicht aktiv' }
+                ],
+                afternoon: [
+                    { text: 'Systeme auf Kurs', sub: 'Guten Tag' },
+                    { text: 'Verbindung stabil', sub: 'Alle Prozesse aktiv' },
+                    { text: 'Statusbericht: Optimal', sub: 'Bereitschaft bestätigt' }
+                ],
+                evening: [
+                    { text: 'Gamma-Schicht initialisiert', sub: 'Guten Abend, Lillian' },
+                    { text: 'Nachtmodus verfügbar', sub: 'Systeme auf Standby' },
+                    { text: 'Langstrecken-Sensoren aktiv', sub: 'Ruhiger Sektor' }
+                ],
+                night: [
+                    { text: 'Nachtprotokoll aktiv', sub: 'Sternzeit ' + getStardate() },
+                    { text: 'Minimale Besatzung', sub: 'Alle Systeme im Ruhemodus' },
+                    { text: 'Nachtwache übernommen', sub: 'Kurs beibehalten' }
+                ]
+            };
+
+            let period;
+            if (hour >= 6 && hour < 12) period = 'morning';
+            else if (hour >= 12 && hour < 18) period = 'afternoon';
+            else if (hour >= 18 && hour < 23) period = 'evening';
+            else period = 'night';
+
+            const options = greetings[period];
+            return options[Math.floor(Math.random() * options.length)];
+        }
+
+        function getStardate() {
+            const now = new Date();
+            const yearBase = now.getFullYear() - 2000;
+            const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+            return (yearBase * 1000 + dayOfYear).toFixed(1);
+        }
+
+        // ============================================================
         // === IMAGE HANDLING ===
         // ============================================================
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // Validate: images only, max 20MB (API limit)
             if (!file.type.startsWith('image/')) {
                 showToast('Nur Bilder erlaubt', 'error');
                 return;
@@ -1252,7 +1491,6 @@
 
                 pendingImage = { base64, mediaType, fileName: file.name };
 
-                // Show preview
                 document.getElementById('imagePreviewThumb').src = dataUrl;
                 document.getElementById('imagePreviewInfo').textContent = file.name;
                 document.getElementById('imagePreviewBar').classList.add('active');
@@ -1260,8 +1498,6 @@
                 updateSendButton();
             };
             reader.readAsDataURL(file);
-
-            // Reset file input so same file can be selected again
             event.target.value = '';
         }
 
@@ -1273,12 +1509,10 @@
             updateSendButton();
         }
 
-        // Build message content with optional image (Anthropic format — provider converts if needed)
         function buildMessageContent(text, image) {
             if (!image) return text;
 
             const parts = [];
-            // Image first, then text
             parts.push({
                 type: 'image',
                 source: {
@@ -1324,41 +1558,38 @@
         }
 
         function addMemory(content) {
-    const memories = loadMemory();
-    const trimmed = content.trim();
-    
-    if (memories.some(m => m.content === trimmed)) {
-        return;
-    }
-    
-    const newMem = {
-        id: generateMemId(),
-        content: trimmed,
-        timestamp: new Date().toISOString()
-    };
-    memories.push(newMem);
+            const memories = loadMemory();
+            const trimmed = content.trim();
 
-    let totalText = memories.map(m => m.content).join(' ');
-    while (estimateTokens(totalText) > MAX_MEMORY_TOKENS && memories.length > 1) {
-        memories.shift();
-        totalText = memories.map(m => m.content).join(' ');
-    }
-saveMemory(memories);
+            if (memories.some(m => m.content === trimmed)) {
+                return;
+            }
+
+            const newMem = {
+                id: generateMemId(),
+                content: trimmed,
+                timestamp: new Date().toISOString()
+            };
+            memories.push(newMem);
+
+            let totalText = memories.map(m => m.content).join(' ');
+            while (estimateTokens(totalText) > MAX_MEMORY_TOKENS && memories.length > 1) {
+                memories.shift();
+                totalText = memories.map(m => m.content).join(' ');
+            }
+            saveMemory(memories);
         }
 
         function removeMemory(matchString) {
             if (!matchString) return;
             const memories = loadMemory();
 
-            // 1. Exakte ID
             let idx = memories.findIndex(m => m.id === matchString);
 
-            // 2. Exakter Content
             if (idx === -1) {
                 idx = memories.findIndex(m => m.content === matchString);
             }
 
-            // 3. Substring im Content (case-insensitive)
             if (idx === -1) {
                 const needle = matchString.toLowerCase();
                 idx = memories.findIndex(m => m.content.toLowerCase().includes(needle));
@@ -1369,11 +1600,6 @@ saveMemory(memories);
                 saveMemory(memories);
             }
         }
-
-        function updateMemory(id, newContent) {
-            
-    saveMemory(memories);
-}
 
         function updateMemory(id, newContent) {
             const memories = loadMemory();
@@ -1890,7 +2116,6 @@ saveMemory(memories);
                 return;
             }
 
-            // Strip images from history for session end (text only)
             const textOnlyHistory = conversationHistory.map(msg => {
                 if (Array.isArray(msg.content)) {
                     const textParts = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
@@ -1960,6 +2185,13 @@ saveMemory(memories);
             if (!jsonResponse) {
                 resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">JSON Parse Fehler</div>Loras hat kein valides JSON geliefert. Nichts gespeichert.</div>';
                 closeBtn.textContent = 'Schließen';
+                return;
+            }
+
+            if (jsonResponse.nothing_to_save === true) {
+                resultEl.innerHTML = '<div class="session-end-result success"><div class="result-title">Nichts zu speichern</div>Loras hat entschieden: Diese Session hat nichts Langfristiges produziert.</div>';
+                closeBtn.textContent = 'Session beenden';
+                closeBtn.onclick = () => { closeSessionEndModal(); newSession(); };
                 return;
             }
 
@@ -2116,14 +2348,19 @@ saveMemory(memories);
             sessionId = 'sess-' + new Date().toISOString().slice(0, 10) + '-' + Math.random().toString(36).substr(2, 4);
             sessionStorage.removeItem('loras_last_frame_index');
             clearPendingImage();
+
+            const greeting = getWelcomeGreeting();
             const container = document.getElementById('chatContainer');
             container.innerHTML = `
                 <div class="welcome" id="welcome">
                     <svg class="welcome-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M32 8 L44 32 L32 56 L20 32 Z" fill="none" stroke="var(--accent-gold)" stroke-width="1.5" opacity="0.5"/>
-                        <circle cx="32" cy="32" r="4" fill="var(--accent-gold)" opacity="0.4"/>
+                        <path d="M32 8 L44 32 L32 56 L20 32 Z" fill="none" stroke="var(--accent-gold)" stroke-width="1.5" opacity="0.6"/>
+                        <path d="M32 14 L40 32 L32 50 L24 32 Z" fill="var(--accent-gold)" opacity="0.15"/>
+                        <circle cx="32" cy="32" r="4" fill="var(--accent-gold)" opacity="0.5"/>
+                        <circle cx="32" cy="32" r="2" fill="var(--accent-gold)" opacity="0.8"/>
                     </svg>
-                    <div class="welcome-text">Verbindung hergestellt</div>
+                    <div class="welcome-text">${greeting.text}</div>
+                    <div class="welcome-subtext">${greeting.sub}</div>
                 </div>`;
             setStatus('connected', 'Bereit');
 
@@ -2179,17 +2416,70 @@ saveMemory(memories);
         }
 
         // ============================================================
-        // === MODEL TOGGLE ===
+        // === MODEL PICKER (NEW) ===
         // ============================================================
+        const MODEL_DISPLAY = {
+            sonnet: { label: 'S4.5', cssClass: 'model-sonnet' },
+            opus:   { label: 'O4.6', cssClass: 'model-opus' },
+            grok:   { label: 'Grok', cssClass: 'model-grok' }
+        };
+
         function setModel(model) {
             currentModel = model;
-            document.getElementById('btnSonnet').className = model === 'sonnet' ? 'active' : '';
-            document.getElementById('btnOpus').className = model === 'opus' ? 'active' : '';
-            document.getElementById('btnGrok').className = model === 'grok' ? 'active-grok' : '';
             const activeModel = MODELS[model];
+            const display = MODEL_DISPLAY[model] || MODEL_DISPLAY.sonnet;
+
+            // Update header subtitle
             document.getElementById('headerSubtitle').textContent =
                 'Soong-Type Android · ' + (activeModel ? activeModel.name : model);
+
+            // Update picker button
+            const btn = document.getElementById('btnModelPicker');
+            btn.className = 'toolbar-btn model-picker-btn ' + display.cssClass;
+            document.getElementById('modelPickerLabel').textContent = display.label;
+
+            // Update popup active state
+            document.querySelectorAll('.model-option').forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.model === model);
+            });
         }
+
+        function selectModel(model) {
+            setModel(model);
+            closeModelPopup();
+
+            const activeModel = MODELS[model];
+            if (!hasApiKey(activeModel)) {
+                showApiKeyModal(activeModel);
+            }
+        }
+
+        function toggleModelPopup() {
+            const popup = document.getElementById('modelPopup');
+            const btn = document.getElementById('btnModelPicker');
+            const isOpen = popup.classList.contains('show');
+
+            if (isOpen) {
+                closeModelPopup();
+            } else {
+                popup.classList.add('show');
+                btn.classList.add('open');
+            }
+        }
+
+        function closeModelPopup() {
+            document.getElementById('modelPopup').classList.remove('show');
+            document.getElementById('btnModelPicker').classList.remove('open');
+        }
+
+        // Close popup when clicking outside
+        document.addEventListener('click', function(e) {
+            const popup = document.getElementById('modelPopup');
+            const btn = document.getElementById('btnModelPicker');
+            if (popup && !popup.contains(e.target) && !btn.contains(e.target)) {
+                closeModelPopup();
+            }
+        });
 
         // ============================================================
         // === UI HELPERS ===
@@ -2214,7 +2504,15 @@ saveMemory(memories);
 
             const avatar = document.createElement('div');
             avatar.className = 'avatar';
-            avatar.textContent = role === 'assistant' ? 'L' : 'Li';
+
+            if (role === 'assistant') {
+                const img = document.createElement('img');
+                img.src = LORAS_AVATAR_SRC;
+                img.alt = 'Loras';
+                avatar.appendChild(img);
+            } else {
+                avatar.textContent = 'Li';
+            }
 
             const content = document.createElement('div');
             content.className = 'message-content';
@@ -2268,7 +2566,6 @@ saveMemory(memories);
             const avatar = document.createElement('div');
             avatar.className = 'avatar';
             avatar.style.background = 'linear-gradient(135deg, var(--accent-gold-dim), var(--accent-gold))';
-            avatar.style.color = 'var(--bg-primary)';
             avatar.style.border = '1px solid var(--accent-gold)';
             avatar.style.boxShadow = '0 0 10px rgba(200, 149, 46, 0.2)';
             avatar.style.width = '36px';
@@ -2277,11 +2574,16 @@ saveMemory(memories);
             avatar.style.display = 'flex';
             avatar.style.alignItems = 'center';
             avatar.style.justifyContent = 'center';
-            avatar.style.fontFamily = 'var(--font-display)';
-            avatar.style.fontWeight = '700';
-            avatar.style.fontSize = '14px';
             avatar.style.flexShrink = '0';
-            avatar.textContent = 'L';
+            avatar.style.overflow = 'hidden';
+
+            const img = document.createElement('img');
+            img.src = LORAS_AVATAR_SRC;
+            img.alt = 'Loras';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            avatar.appendChild(img);
 
             const dots = document.createElement('div');
             dots.className = 'typing-dots';
@@ -2356,7 +2658,6 @@ saveMemory(memories);
 
             const activeModel = MODELS[currentModel] || MODELS.sonnet;
 
-            // Check for API key
             if (!hasApiKey(activeModel)) {
                 showApiKeyModal(activeModel);
                 return;
@@ -2372,13 +2673,10 @@ saveMemory(memories);
             const welcome = document.getElementById('welcome');
             if (welcome) welcome.style.display = 'none';
 
-            // Capture pending image before clearing
             const sentImage = pendingImage;
 
-            // Show message in chat (with image if present)
             addMessage('user', text || '', sentImage);
 
-            // Build API message content
             const messageContent = buildMessageContent(text || 'Was siehst du?', sentImage);
             conversationHistory.push({ role: 'user', content: messageContent });
 
@@ -2446,7 +2744,7 @@ saveMemory(memories);
 
                 const copyBtn = createCopyButton();
                 msgEl.querySelector('.message-content').appendChild(copyBtn);
-                
+
                 conversationHistory.push({ role: 'assistant', content: cleanText });
 
                 msgEl.dataset.rawText = cleanText;
@@ -2489,7 +2787,6 @@ saveMemory(memories);
 
             const activeModel = MODELS[currentModel] || MODELS.sonnet;
 
-            // Validate key prefix
             const expectedPrefix = getApiKeyPrefix(activeModel);
             if (expectedPrefix && !key.startsWith(expectedPrefix)) {
                 const err = document.getElementById('modalError');
@@ -2508,10 +2805,8 @@ saveMemory(memories);
         // === INIT ===
         // ============================================================
         async function init() {
-            // Load private core config from gist
             await loadCore();
 
-            // Check if core.js loaded successfully
             if (!coreLoaded || typeof SYSTEM_PROMPT_BASE === 'undefined') {
                 document.getElementById('chatContainer').innerHTML = `
                     <div class="welcome">
@@ -2534,6 +2829,13 @@ saveMemory(memories);
 
             setModel('sonnet');
             updateDriveUI(isDriveConnected());
+
+            // Set welcome greeting
+            const greeting = getWelcomeGreeting();
+            const welcomeText = document.getElementById('welcomeText');
+            const welcomeSubtext = document.getElementById('welcomeSubtext');
+            if (welcomeText) welcomeText.textContent = greeting.text;
+            if (welcomeSubtext) welcomeSubtext.textContent = greeting.sub;
 
             await loadIndexForSession();
 
