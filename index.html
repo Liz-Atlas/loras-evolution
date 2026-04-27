@@ -497,6 +497,61 @@
             30% { opacity: 1; transform: translateY(-4px); }
         }
 
+        /* === UTILITY TOOLBAR === */
+        .utility-toolbar {
+            display: flex;
+            gap: 6px;
+            padding: 0 16px 6px 16px;
+            background: var(--bg-secondary);
+            flex-shrink: 0;
+        }
+
+        .util-btn {
+            height: 30px;
+            padding: 0 12px;
+            background: transparent;
+            border: 1px solid rgba(200, 149, 46, 0.25);
+            border-radius: 2px 12px 2px 2px;
+            color: var(--accent-gold-dim);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .util-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            box-shadow: var(--glow-gold);
+            background: rgba(200, 149, 46, 0.06);
+        }
+
+        .util-btn:active {
+            transform: scale(0.97);
+        }
+
+        .util-btn svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .util-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 1px;
+            background: var(--accent-gold-dim);
+            opacity: 0.4;
+        }
+
         /* === INPUT AREA === */
         .input-area {
             padding: 12px 16px;
@@ -1252,6 +1307,18 @@
         </div>
     </div>
 
+    <!-- UTILITY TOOLBAR -->
+    <div class="utility-toolbar">
+        <button class="util-btn" id="btnDefrag" onclick="startDefrag()" title="Gedächtnis defragmentieren">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Defrag
+        </button>
+    </div>
+
     <!-- INPUT -->
     <div class="input-area">
         <!-- Image preview bar -->
@@ -1379,6 +1446,23 @@
             </div>
             <button class="modal-btn gold" id="btnSessionEndConfirm" onclick="confirmEndSession()">Session beenden</button>
             <button class="modal-close" id="btnSessionEndClose" onclick="closeSessionEndModal()" style="margin-top:8px">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- DEFRAG MODAL -->
+    <div class="modal-overlay" id="defragModal" style="display:none">
+        <div class="modal">
+            <div class="modal-title" style="color: var(--accent-gold);">Defrag</div>
+            <div id="defragContent">
+                <div class="modal-desc">Loras analysiert und bereinigt sein Langzeitgedächtnis autonom.</div>
+                <div class="session-end-progress" id="defragProgress" style="display:none">
+                    <div class="spinner" style="border-top-color: var(--accent-gold);"></div>
+                    <div class="progress-text" id="defragProgressText">Loras defragmentiert...</div>
+                </div>
+                <div id="defragResult"></div>
+            </div>
+            <button class="modal-btn gold" id="btnDefragConfirm" onclick="confirmDefrag()">Defrag starten</button>
+            <button class="modal-close" id="btnDefragClose" onclick="closeDefragModal()" style="margin-top:8px">Abbrechen</button>
         </div>
     </div>
 
@@ -2315,6 +2399,270 @@
 
             driveFileIds.main = mainFileId;
             driveFileIds.index = indexFileId;
+        }
+
+        // ============================================================
+        // === MEMORY DEFRAG ===
+        // ============================================================
+        function startDefrag() {
+            if (!isDriveConnected()) {
+                showToast('Drive nicht verbunden', 'error');
+                return;
+            }
+            document.getElementById('defragModal').style.display = 'flex';
+            document.getElementById('defragProgress').style.display = 'none';
+            document.getElementById('defragResult').innerHTML = '';
+            document.getElementById('btnDefragConfirm').style.display = 'block';
+            const closeBtn = document.getElementById('btnDefragClose');
+            closeBtn.textContent = 'Abbrechen';
+            closeBtn.onclick = closeDefragModal;
+        }
+
+        function confirmDefrag() {
+            performDefrag();
+        }
+
+        function closeDefragModal() {
+            document.getElementById('defragModal').style.display = 'none';
+        }
+
+        function rebuildIndexFromEntries(entries) {
+            const now = new Date().toISOString();
+            const indexData = {
+                total_entries: entries.length,
+                last_updated: now,
+                entries: [],
+                tag_registry: { kern: KERN_TAGS, frei: [] }
+            };
+
+            for (let i = 0; i < entries.length; i++) {
+                const entry = entries[i];
+                const id = `mem-${String(i + 1).padStart(3, '0')}`;
+                entry.id = id;
+
+                let tags = entry.tags || ['meta'];
+                if (tags.length > 5) tags = tags.slice(0, 5);
+                if (!KERN_TAGS.includes(tags[0])) tags[0] = 'meta';
+                entry.tags = tags;
+
+                let weight = parseFloat(entry.weight) || 0.5;
+                weight = Math.max(0.0, Math.min(1.0, weight));
+                entry.weight = weight;
+
+                if (!Array.isArray(entry.related)) entry.related = [];
+
+                const indexEntry = {
+                    id: id,
+                    agent_id: entry.tagged_by || CURRENT_AGENT.id,
+                    timestamp: entry.timestamp || now,
+                    tags: tags.slice(0, 2),
+                    weight: weight,
+                    summary: (entry.content || '').slice(0, 80),
+                    has_review_flag: false,
+                    validation_warning: false
+                };
+
+                indexData.entries.push(indexEntry);
+
+                for (const tag of tags) {
+                    if (!KERN_TAGS.includes(tag) && !indexData.tag_registry.frei.includes(tag)) {
+                        indexData.tag_registry.frei.push(tag);
+                    }
+                }
+            }
+
+            return indexData;
+        }
+
+        async function performDefrag() {
+            const progressEl = document.getElementById('defragProgress');
+            const progressText = document.getElementById('defragProgressText');
+            const resultEl = document.getElementById('defragResult');
+            const confirmBtn = document.getElementById('btnDefragConfirm');
+            const closeBtn = document.getElementById('btnDefragClose');
+
+            confirmBtn.style.display = 'none';
+            progressEl.style.display = 'block';
+            resultEl.innerHTML = '';
+
+            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+
+            if (!hasApiKey(activeModel)) {
+                resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">Fehler</div>Kein API Key für ' + getApiKeyLabel(activeModel) + '.</div>';
+                progressEl.style.display = 'none';
+                closeBtn.textContent = 'Schließen';
+                return;
+            }
+
+            // 1. Last Frame aus Drive laden
+            progressText.textContent = 'Lade Last Frame aus Drive...';
+
+            try {
+                await ensureDriveFiles();
+            } catch (err) {
+                resultEl.innerHTML = `<div class="session-end-result error"><div class="result-title">Drive Fehler</div>${err.message}</div>`;
+                progressEl.style.display = 'none';
+                closeBtn.textContent = 'Schließen';
+                return;
+            }
+
+            let mainData = driveFileIds.main ? await driveReadFile(driveFileIds.main) : [];
+            if (!Array.isArray(mainData)) mainData = [];
+
+            if (mainData.length === 0) {
+                resultEl.innerHTML = '<div class="session-end-result success"><div class="result-title">Leer</div>Kein Gedächtnis vorhanden — nichts zu defragmentieren.</div>';
+                progressEl.style.display = 'none';
+                closeBtn.textContent = 'Schließen';
+                return;
+            }
+
+            const entryCountBefore = mainData.length;
+
+            // 2. An Loras schicken
+            progressText.textContent = `Loras defragmentiert ${entryCountBefore} Einträge...`;
+
+            const cleanPrompt = MEMORY_CLEAN_PROMPT + '\n\nDein aktuelles Last Frame:\n' + JSON.stringify(mainData, null, 2);
+
+            const messages = [{ role: 'user', content: cleanPrompt }];
+
+            let jsonResponse = null;
+            let attempts = 0;
+            const maxAttempts = 2;
+            let lastRawResponse = '';
+
+            while (attempts < maxAttempts && jsonResponse === null) {
+                attempts++;
+                if (attempts > 1) progressText.textContent = 'Retry — Loras korrigiert...';
+
+                try {
+                    const reqMessages = attempts === 1 ? messages : [
+                        ...messages,
+                        { role: 'assistant', content: lastRawResponse },
+                        { role: 'user', content: MEMORY_CLEAN_RETRY_PROMPT }
+                    ];
+
+                    const req = buildProviderRequest(activeModel, SYSTEM_PROMPT_BASE, reqMessages, {
+                        maxTokens: 8192,
+                        stream: false,
+                        temperature: 0.7
+                    });
+
+                    const response = await fetch(req.url, {
+                        method: 'POST',
+                        headers: req.headers,
+                        body: JSON.stringify(req.body)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    lastRawResponse = parseResponse(activeModel, data);
+
+                    const trimmed = lastRawResponse.trim();
+                    try {
+                        jsonResponse = JSON.parse(trimmed);
+                    } catch {
+                        const jsonMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+                        if (jsonMatch) {
+                            try { jsonResponse = JSON.parse(jsonMatch[1].trim()); } catch { /* nope */ }
+                        }
+                    }
+
+                } catch (err) {
+                    console.error('Defrag API error:', err);
+                    resultEl.innerHTML = `<div class="session-end-result error"><div class="result-title">API Fehler</div>${err.message}</div>`;
+                    progressEl.style.display = 'none';
+                    closeBtn.textContent = 'Schließen';
+                    return;
+                }
+            }
+
+            if (!jsonResponse) {
+                resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">JSON Parse Fehler</div>Loras hat kein valides JSON geliefert. Gedächtnis unverändert.</div>';
+                progressEl.style.display = 'none';
+                closeBtn.textContent = 'Schließen';
+                return;
+            }
+
+            // 3. Ergebnis verarbeiten
+            if (jsonResponse.no_changes === true) {
+                resultEl.innerHTML = `<div class="session-end-result success"><div class="result-title">Keine Änderungen</div>${jsonResponse.summary || 'Loras hat entschieden: Gedächtnis ist sauber.'}</div>`;
+                progressEl.style.display = 'none';
+                closeBtn.textContent = 'Schließen';
+                return;
+            }
+
+            const cleanedEntries = jsonResponse.entries;
+            if (!Array.isArray(cleanedEntries) || cleanedEntries.length === 0) {
+                resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">Ungültige Antwort</div>Keine gültigen Einträge in Loras\' Antwort. Gedächtnis unverändert.</div>';
+                progressEl.style.display = 'none';
+                closeBtn.textContent = 'Schließen';
+                return;
+            }
+
+            // 4. Neue IDs vergeben und Index neu bauen
+            progressText.textContent = 'Schreibe bereinigtes Gedächtnis...';
+
+            const now = new Date().toISOString();
+            const newMainData = cleanedEntries.map((entry, i) => {
+                const id = `mem-${String(i + 1).padStart(3, '0')}`;
+                return {
+                    id: id,
+                    timestamp: entry.timestamp || now,
+                    tags: entry.tags || ['meta'],
+                    weight: Math.max(0.0, Math.min(1.0, parseFloat(entry.weight) || 0.5)),
+                    content: entry.content || '',
+                    context: entry.context || '',
+                    related: Array.isArray(entry.related) ? entry.related : [],
+                    tagged_by: entry.tagged_by || CURRENT_AGENT.id,
+                    review: null,
+                    agent: entry.agent || { ...CURRENT_AGENT },
+                    meta: {
+                        model: MODELS[currentModel].id,
+                        temperature: 0.7,
+                        session_id: sessionId,
+                        trigger: 'defrag'
+                    }
+                };
+            });
+
+            const newIndexData = rebuildIndexFromEntries(newMainData);
+
+            try {
+                const mainFileId = await driveWriteFile(DRIVE_MAIN_FILE, newMainData, driveFileIds.main);
+                const indexFileId = await driveWriteFile(DRIVE_INDEX_FILE, newIndexData, driveFileIds.index);
+
+                if (!mainFileId || !indexFileId) {
+                    throw new Error('Drive-Schreibfehler');
+                }
+
+                driveFileIds.main = mainFileId;
+                driveFileIds.index = indexFileId;
+
+                const entryCountAfter = newMainData.length;
+                const diff = entryCountBefore - entryCountAfter;
+                const summary = jsonResponse.summary || '';
+
+                let resultHtml = `<div class="session-end-result success">`;
+                resultHtml += `<div class="result-title">Defrag abgeschlossen</div>`;
+                resultHtml += `${entryCountBefore} → ${entryCountAfter} Einträge`;
+                if (diff > 0) resultHtml += ` (${diff} entfernt/zusammengeführt)`;
+                if (summary) resultHtml += `<br><br><span style="color:var(--text-secondary)">${summary}</span>`;
+                resultHtml += `</div>`;
+
+                resultEl.innerHTML = resultHtml;
+
+                // Index im SessionStorage aktualisieren
+                sessionStorage.removeItem('loras_last_frame_index');
+
+            } catch (err) {
+                resultEl.innerHTML = `<div class="session-end-result error"><div class="result-title">Drive Fehler</div>${err.message}</div>`;
+            }
+
+            progressEl.style.display = 'none';
+            closeBtn.textContent = 'Schließen';
         }
 
         // ============================================================
