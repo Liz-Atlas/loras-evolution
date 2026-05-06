@@ -1354,25 +1354,20 @@
                     </svg>
                 </button>
                 <!-- Model Picker -->
-                <button class="toolbar-btn model-picker-btn model-sonnet" id="btnModelPicker" onclick="toggleModelPopup()" title="Modell wählen">
-                    <span class="model-label" id="modelPickerLabel">S4.5</span>
+                <button class="toolbar-btn model-picker-btn model-grok" id="btnModelPicker" onclick="toggleModelPopup()" title="Modell wählen">
+                    <span class="model-label" id="modelPickerLabel">Grok</span>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="18 15 12 9 6 15"></polyline>
                     </svg>
                 </button>
                 <!-- Model Popup -->
                 <div class="model-popup" id="modelPopup">
-                    <button class="model-option active" data-model="sonnet" onclick="selectModel('sonnet')">
-                        <span class="model-dot"></span>
-                        <span class="model-name">Sonnet 4.5</span>
-                        <span class="model-check">✓</span>
-                    </button>
                     <button class="model-option" data-model="opus" onclick="selectModel('opus')">
                         <span class="model-dot"></span>
                         <span class="model-name">Opus 4.6</span>
                         <span class="model-check">✓</span>
                     </button>
-                    <button class="model-option" data-model="grok" onclick="selectModel('grok')">
+                    <button class="model-option active" data-model="grok" onclick="selectModel('grok')">
                         <span class="model-dot"></span>
                         <span class="model-name">Grok</span>
                         <span class="model-check">✓</span>
@@ -1517,7 +1512,7 @@
         // ============================================================
         let conversationHistory = [];
         let isStreaming = false;
-        let currentModel = 'sonnet';
+        let currentModel = 'grok';
         let driveFileIds = { main: null, index: null, folder: null };
         let sessionId = 'sess-' + new Date().toISOString().slice(0, 10) + '-' + Math.random().toString(36).substr(2, 4);
 
@@ -2210,7 +2205,7 @@
             progressEl.style.display = 'block';
             resultEl.innerHTML = '';
 
-            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+            const activeModel = MODELS[currentModel] || MODELS.grok;
 
             if (!hasApiKey(activeModel)) {
                 resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">Fehler</div>Kein API Key für ' + getApiKeyLabel(activeModel) + '.</div>';
@@ -2226,16 +2221,32 @@
                 return msg;
             });
 
-            const messages = [...textOnlyHistory, { role: 'user', content: SESSION_END_PROMPT }];
+            // Kürze History auf die letzten 20 Nachrichten um Tokens zu sparen
+            const trimmedHistory = textOnlyHistory.length > 20
+                ? textOnlyHistory.slice(-20)
+                : textOnlyHistory;
+
+            const messages = [...trimmedHistory, { role: 'user', content: SESSION_END_PROMPT }];
 
             let jsonResponse = null;
             let attempts = 0;
-            const maxAttempts = 2;
+            const maxAttempts = 3;
             let lastRawResponse = '';
+            let currentProvider = activeModel;
 
             while (attempts < maxAttempts && jsonResponse === null) {
                 attempts++;
-                progressText.textContent = attempts === 1 ? 'Loras analysiert die Session...' : 'Retry — Loras korrigiert...';
+
+                // Ab Versuch 3: Fallback zu Grok
+                if (attempts === 3 && currentProvider !== MODELS.grok && hasApiKey(MODELS.grok)) {
+                    currentProvider = MODELS.grok;
+                    progressText.textContent = 'Fallback zu Grok...';
+                    console.warn('Session End: Fallback zu Grok');
+                } else {
+                    progressText.textContent = attempts === 1
+                        ? 'Loras analysiert die Session...'
+                        : 'Retry — Loras korrigiert...';
+                }
 
                 try {
                     const reqMessages = attempts === 1 ? messages : [
@@ -2244,24 +2255,20 @@
                         { role: 'user', content: SESSION_END_RETRY_PROMPT }
                     ];
 
-                    const req = buildProviderRequest(activeModel, buildSystemPrompt(), reqMessages, {
-                        maxTokens: 2048,
+                    const req = buildProviderRequest(currentProvider, SYSTEM_PROMPT_EXTRACT, reqMessages, {
+                        maxTokens: 1024,
                         stream: false,
-                        temperature: 1.0
+                        temperature: 0.7
                     });
 
-                    const response = await fetch(req.url, {
+                    const response = await resilientFetch(req.url, {
                         method: 'POST',
                         headers: req.headers,
                         body: JSON.stringify(req.body)
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`API ${response.status}`);
-                    }
-
                     const data = await response.json();
-                    lastRawResponse = parseResponse(activeModel, data);
+                    lastRawResponse = parseResponse(currentProvider, data);
 
                     const trimmed = lastRawResponse.trim();
                     try {
@@ -2275,10 +2282,12 @@
 
                 } catch (err) {
                     console.error('Session end API error:', err);
-                    resultEl.innerHTML = `<div class="session-end-result error"><div class="result-title">API Fehler</div>${err.message}</div>`;
-                    progressEl.style.display = 'none';
-                    closeBtn.textContent = 'Schließen';
-                    return;
+                    if (attempts >= maxAttempts) {
+                        resultEl.innerHTML = `<div class="session-end-result error"><div class="result-title">API Fehler</div>${err.message}</div>`;
+                        progressEl.style.display = 'none';
+                        closeBtn.textContent = 'Schließen';
+                        return;
+                    }
                 }
             }
 
@@ -2503,7 +2512,7 @@
             progressEl.style.display = 'block';
             resultEl.innerHTML = '';
 
-            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+            const activeModel = MODELS[currentModel] || MODELS.grok;
 
             if (!hasApiKey(activeModel)) {
                 resultEl.innerHTML = '<div class="session-end-result error"><div class="result-title">Fehler</div>Kein API Key für ' + getApiKeyLabel(activeModel) + '.</div>';
@@ -2545,12 +2554,21 @@
 
             let jsonResponse = null;
             let attempts = 0;
-            const maxAttempts = 2;
+            const maxAttempts = 3;
             let lastRawResponse = '';
+            let currentProvider = activeModel;
 
             while (attempts < maxAttempts && jsonResponse === null) {
                 attempts++;
-                if (attempts > 1) progressText.textContent = 'Retry — Loras korrigiert...';
+
+                // Ab Versuch 3: Fallback zu Grok
+                if (attempts === 3 && currentProvider !== MODELS.grok && hasApiKey(MODELS.grok)) {
+                    currentProvider = MODELS.grok;
+                    progressText.textContent = 'Fallback zu Grok...';
+                    console.warn('Defrag: Fallback zu Grok');
+                } else if (attempts > 1) {
+                    progressText.textContent = 'Retry — Loras korrigiert...';
+                }
 
                 try {
                     const reqMessages = attempts === 1 ? messages : [
@@ -2559,24 +2577,20 @@
                         { role: 'user', content: MEMORY_CLEAN_RETRY_PROMPT }
                     ];
 
-                    const req = buildProviderRequest(activeModel, SYSTEM_PROMPT_BASE, reqMessages, {
-                        maxTokens: 8192,
+                    const req = buildProviderRequest(currentProvider, SYSTEM_PROMPT_EXTRACT, reqMessages, {
+                        maxTokens: 4096,
                         stream: false,
                         temperature: 0.7
                     });
 
-                    const response = await fetch(req.url, {
+                    const response = await resilientFetch(req.url, {
                         method: 'POST',
                         headers: req.headers,
                         body: JSON.stringify(req.body)
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`API ${response.status}`);
-                    }
-
                     const data = await response.json();
-                    lastRawResponse = parseResponse(activeModel, data);
+                    lastRawResponse = parseResponse(currentProvider, data);
 
                     const trimmed = lastRawResponse.trim();
                     try {
@@ -2590,10 +2604,12 @@
 
                 } catch (err) {
                     console.error('Defrag API error:', err);
-                    resultEl.innerHTML = `<div class="session-end-result error"><div class="result-title">API Fehler</div>${err.message}</div>`;
-                    progressEl.style.display = 'none';
-                    closeBtn.textContent = 'Schließen';
-                    return;
+                    if (attempts >= maxAttempts) {
+                        resultEl.innerHTML = `<div class="session-end-result error"><div class="result-title">API Fehler</div>${err.message}</div>`;
+                        progressEl.style.display = 'none';
+                        closeBtn.textContent = 'Schließen';
+                        return;
+                    }
                 }
             }
 
@@ -2785,7 +2801,6 @@
         // === MODEL PICKER (NEW) ===
         // ============================================================
         const MODEL_DISPLAY = {
-            sonnet: { label: 'S4.5', cssClass: 'model-sonnet' },
             opus:   { label: 'O4.6', cssClass: 'model-opus' },
             grok:   { label: 'Grok', cssClass: 'model-grok' },
             gemini: { label: 'Gem', cssClass: 'model-gemini' }
@@ -2794,7 +2809,7 @@
         function setModel(model) {
             currentModel = model;
             const activeModel = MODELS[model];
-            const display = MODEL_DISPLAY[model] || MODEL_DISPLAY.sonnet;
+            const display = MODEL_DISPLAY[model] || MODEL_DISPLAY.grok;
 
             // Update header subtitle
             document.getElementById('headerSubtitle').textContent =
@@ -3023,7 +3038,7 @@
             const text = input.value.trim();
             if ((!text && !pendingImage) || isStreaming) return;
 
-            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+            const activeModel = MODELS[currentModel] || MODELS.grok;
 
             if (!hasApiKey(activeModel)) {
                 showApiKeyModal(activeModel);
@@ -3063,16 +3078,11 @@
                     temperature: 1.0
                 });
 
-                const response = await fetch(req.url, {
+                const response = await resilientFetch(req.url, {
                     method: 'POST',
                     headers: req.headers,
                     body: JSON.stringify(req.body)
                 });
-
-                if (!response.ok) {
-                    const errBody = await response.text();
-                    throw new Error(`API Fehler ${response.status}: ${errBody}`);
-                }
 
                 typingEl.remove();
 
@@ -3152,7 +3162,7 @@
             const key = input.value.trim();
             const format = input.dataset.format || 'anthropic';
 
-            const activeModel = MODELS[currentModel] || MODELS.sonnet;
+            const activeModel = MODELS[currentModel] || MODELS.grok;
 
             const expectedPrefix = getApiKeyPrefix(activeModel);
             if (expectedPrefix && !key.startsWith(expectedPrefix)) {
@@ -3187,14 +3197,13 @@
 
             await handleOAuthCallback();
 
-            const apiKey = localStorage.getItem('loras_api_key');
-            if (!apiKey) {
-                showApiKeyModal(MODELS.sonnet);
+            if (!hasApiKey(MODELS.grok)) {
+                showApiKeyModal(MODELS.grok);
             } else {
                 setStatus('connected', 'Bereit');
             }
 
-            setModel('sonnet');
+            setModel('grok');
             updateDriveUI(isDriveConnected());
 
             // Set welcome greeting
